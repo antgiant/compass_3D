@@ -54,22 +54,20 @@
 			const rotationSpeed = 0.02;
 
 			const cloudsScale = 1.005;
-			const moonScale = 0.23;
 
 			const MARGIN = 0;
 			let SCREEN_HEIGHT = window.innerHeight - MARGIN * 2;
 			let SCREEN_WIDTH = window.innerWidth;
 
 			let camera, scene, renderer, stats;
-			let geometry, meshPlanet, meshClouds, meshMoon;
+			let geometry, meshPlanet, meshClouds;
 			let dirLight;
 
 			let composer;
 
 			const textureLoader = new THREE.TextureLoader();
 
-			let d, dPlanet, dMoon;
-			const dMoonVec = new THREE.Vector3();
+			let d, dPlanet;
 
 			const clock = new THREE.Clock();
 
@@ -123,19 +121,6 @@
 				meshClouds.scale.set( cloudsScale, cloudsScale, cloudsScale );
 				meshClouds.rotation.z = tilt;
 				scene.add( meshClouds );
-
-				// moon
-
-				const materialMoon = new THREE.MeshPhongMaterial( {
-
-					map: textureLoader.load( "textures/planets/moon_1024.jpg" )
-
-				} );
-
-				meshMoon = new THREE.Mesh( geometry, materialMoon );
-				meshMoon.position.set( radius * 5, 0, 0 );
-				meshMoon.scale.set( moonScale, moonScale, moonScale );
-				scene.add( meshMoon );
 
 				// stars
 
@@ -265,18 +250,8 @@
 
 				dPlanet = camera.position.length();
 
-				dMoonVec.subVectors( camera.position, meshMoon.position );
-				dMoon = dMoonVec.length();
-
-				if ( dMoon < dPlanet ) {
-
-					d = ( dMoon - radius * moonScale * 1.01 );
-
-				} else {
-
-					d = ( dPlanet - radius * 1.01 );
-
-				}
+				
+				d = ( dPlanet - radius * 1.01 );
 
 				//controls.movementSpeed = 0.33 * d;
 				//controls.update( delta );
