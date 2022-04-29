@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>three.js webgl - fly controls - earth</title>
+		<title>three.js webgl - earth</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="main.css">
@@ -23,7 +23,7 @@
 
 	<body>
 
-		<div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - earth [fly controls]<br/>
+		<div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - earth<br/>
 		<b>WASD</b> move, <b>R|F</b> up | down, <b>Q|E</b> roll, <b>up|down</b> pitch, <b>left|right</b> yaw
 		</div>
 
@@ -45,7 +45,7 @@
 
 			import Stats from './jsm/libs/stats.module.js';
 
-			import { FlyControls } from './jsm/controls/FlyControls.js';
+			//import { FlyControls } from './jsm/controls/FlyControls.js';
 			import { EffectComposer } from './jsm/postprocessing/EffectComposer.js';
 			import { RenderPass } from './jsm/postprocessing/RenderPass.js';
 			import { FilmPass } from './jsm/postprocessing/FilmPass.js';
@@ -61,7 +61,7 @@
 			let SCREEN_HEIGHT = window.innerHeight - MARGIN * 2;
 			let SCREEN_WIDTH = window.innerWidth;
 
-			let camera, controls, scene, renderer, stats;
+			let camera, scene, renderer, stats;
 			let geometry, meshPlanet, meshClouds, meshMoon;
 			let dirLight;
 
@@ -204,13 +204,13 @@
 
 				//
 
-				controls = new FlyControls( camera, renderer.domElement );
+				//controls = new FlyControls( camera, renderer.domElement );
 
-				controls.movementSpeed = 1000;
-				controls.domElement = renderer.domElement;
-				controls.rollSpeed = Math.PI / 24;
-				controls.autoForward = false;
-				controls.dragToLook = false;
+				//controls.movementSpeed = 1000;
+				//controls.domElement = renderer.domElement;
+				//controls.rollSpeed = Math.PI / 24;
+				//controls.autoForward = false;
+				//controls.dragToLook = false;
 
 				//
 
@@ -279,8 +279,8 @@
 
 				}
 
-				controls.movementSpeed = 0.33 * d;
-				controls.update( delta );
+				//controls.movementSpeed = 0.33 * d;
+				//controls.update( delta );
 
 				composer.render( delta );
 
