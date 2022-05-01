@@ -53,14 +53,12 @@
 			const tilt = 0.41;
 			const rotationSpeed = 0.02;
 
-			const cloudsScale = 1.005;
-
 			const MARGIN = 0;
 			let SCREEN_HEIGHT = window.innerHeight - MARGIN * 2;
 			let SCREEN_WIDTH = window.innerWidth;
 
 			let camera, scene, renderer, stats;
-			let geometry, meshPlanet, meshClouds;
+			let geometry, meshPlanet, shinyBallGeom, shinyBallMesh;
 			let dirLight;
 
 			let composer;
@@ -80,7 +78,7 @@
 				camera.position.z = radius * 5;
 
 				scene = new THREE.Scene();
-				//.fog = new THREE.FogExp2( 0x000000, 0.00000025 );
+				//scene.fog = new THREE.FogExp2( 0x000000, 0.00000025 );
 
 				dirLight = new THREE.DirectionalLight( 0xffffff );
 				dirLight.position.set( - 1, 0, 1 ).normalize();
@@ -108,18 +106,24 @@
 				meshPlanet.rotation.z = tilt;
 				scene.add( meshPlanet );
 
-				// clouds
-				const materialClouds = new THREE.MeshLambertMaterial( {
+				// Shiny Glass Ball
 
-					map: textureLoader.load( "textures/planets/earth_clouds_1024.png" ),
-					transparent: true
+				const roughNormal = textureLoader.load("textures/Water_2_M_Normal.jpeg");
+				const clearcoatNormal = textureLoader.load(
+					"textures/Scratched_gold_01_1K_Normal.png"
+				);
 
-				} );
-
-				meshClouds = new THREE.Mesh( geometry, materialClouds );
-				meshClouds.scale.set( cloudsScale, cloudsScale, cloudsScale );
-				meshClouds.rotation.z = tilt;
-				scene.add( meshClouds );
+				const shinyBallNormalMap = new THREE.MeshPhysicalMaterial({
+					normalMap: roughNormal,
+					clearcoat: 1,
+					clearcoatNormalMap: clearcoatNormal,
+					roughness: 0.0515,
+					transmission: 1,
+					thickness: 0.5
+				});
+				shinyBallGeom = new THREE.SphereGeometry(radius + 6, 100, 50);
+				shinyBallMesh = new THREE.Mesh(shinyBallGeom, shinyBallNormalMap);
+				scene.add(shinyBallMesh);
 
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
@@ -179,12 +183,12 @@
 
 			function render() {
 
-				// rotate the planet and clouds
+				// rotate the planet
 
 				const delta = clock.getDelta();
 
 				meshPlanet.rotation.y += rotationSpeed * delta;
-				meshClouds.rotation.y += 1.25 * rotationSpeed * delta;
+				shinyBallMesh.rotation.y -= rotationSpeed * delta;
 
 				// slow down as we approach the surface
 
