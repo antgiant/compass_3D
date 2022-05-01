@@ -44,12 +44,12 @@
 
 			import Stats from './jsm/libs/stats.module.js';
 
-			//import { FlyControls } from './jsm/controls/FlyControls.js';
+			import { OrbitControls } from './jsm/controls/OrbitControls.js';
 			import { EffectComposer } from './jsm/postprocessing/EffectComposer.js';
 			import { RenderPass } from './jsm/postprocessing/RenderPass.js';
 			import { FilmPass } from './jsm/postprocessing/FilmPass.js';
 
-			const radius = 6371;
+			const radius = 100;
 			const tilt = 0.41;
 			const rotationSpeed = 1.02;
 
@@ -57,9 +57,9 @@
 			let SCREEN_HEIGHT = window.innerHeight - MARGIN * 2;
 			let SCREEN_WIDTH = window.innerWidth;
 
-			let camera, scene, renderer, stats;
-			let geometry, meshPlanet, shinyBallGeom, shinyBallMesh;
-			let dirLight;
+			let camera, scene, renderer, stats, controls;
+			let geometry, meshCompass, shinyBallGeom, shinyBallMesh;
+			let dirLight, dirLight2, dirLight3, dirLight4, dirLight5, dirLight6;
 
 			let composer;
 
@@ -84,6 +84,26 @@
 				dirLight.position.set( - 1, 0, 1 ).normalize();
 				scene.add( dirLight );
 
+				dirLight2 = new THREE.DirectionalLight( 0xffffff );
+				dirLight2.position.set(  1, 0, 1 ).normalize();
+				scene.add( dirLight2 );
+
+				dirLight3 = new THREE.DirectionalLight( 0xffffff );
+				dirLight3.position.set(  -1, 0, -1 ).normalize();
+				scene.add( dirLight3 );
+
+				dirLight4 = new THREE.DirectionalLight( 0xffffff );
+				dirLight4.position.set(  1, 0, -1 ).normalize();
+				scene.add( dirLight4 );
+
+				dirLight5 = new THREE.DirectionalLight( 0xffffff );
+				dirLight5.position.set(  0, 1, 0 ).normalize();
+				scene.add( dirLight5 );
+
+				dirLight6 = new THREE.DirectionalLight( 0xffffff );
+				dirLight6.position.set(  0, -1, 0 ).normalize();
+				scene.add( dirLight6 );
+
 				const materialNormalMap = new THREE.MeshPhongMaterial( {
 
 					specular: 0x333333,
@@ -97,13 +117,12 @@
 
 				} );
 
-				// planet
+				// compass
 
 				geometry = new THREE.SphereGeometry( radius, 100, 50 );
 
-				meshPlanet = new THREE.Mesh( geometry, materialNormalMap );
-				meshPlanet.rotation.y = 0;
-				scene.add( meshPlanet );
+				meshCompass = new THREE.Mesh( geometry, materialNormalMap );
+				scene.add( meshCompass );
 
 				// Shiny Glass Ball
 
@@ -118,9 +137,9 @@
 					clearcoatNormalMap: clearcoatNormal,
 					roughness: 0.0515,
 					transmission: 1,
-					thickness: 0.5
+					thickness: 0.05
 				});
-				shinyBallGeom = new THREE.SphereGeometry(radius + 6, 100, 50);
+				shinyBallGeom = new THREE.SphereGeometry(radius + (radius*0.05), 100, 50);
 				shinyBallMesh = new THREE.Mesh(shinyBallGeom, shinyBallNormalMap);
 				scene.add(shinyBallMesh);
 
@@ -131,13 +150,9 @@
 
 				//
 
-				//controls = new FlyControls( camera, renderer.domElement );
+				controls = new OrbitControls( camera, renderer.domElement );
 
-				//controls.movementSpeed = 1000;
-				//controls.domElement = renderer.domElement;
-				//controls.rollSpeed = Math.PI / 24;
-				//controls.autoForward = false;
-				//controls.dragToLook = false;
+				controls.domElement = renderer.domElement;
 
 				//
 
@@ -182,22 +197,11 @@
 
 			function render() {
 
-				// rotate the planet
+				// rotate the compass
 
 				const delta = clock.getDelta();
 
-				meshPlanet.rotation.y += rotationSpeed * delta;
-				shinyBallMesh.rotation.y -= rotationSpeed * delta;
-
-				// slow down as we approach the surface
-
-				dPlanet = camera.position.length();
-
-				
-				d = ( dPlanet - radius * 1.01 );
-
-				//controls.movementSpeed = 0.33 * d;
-				//controls.update( delta );
+				//meshCompass.rotation.y += rotationSpeed * delta;
 
 				composer.render( delta );
 
