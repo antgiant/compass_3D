@@ -18,6 +18,25 @@
 			b {
 				color: orange
 			}
+			[class^="column-"] {
+				display: inline-block;
+			}
+
+			.column-33 {
+				width: 33.33333%;
+			}
+			.status {
+				position: fixed;
+				left: 0;
+				right: 0;
+				bottom: 0;
+			}
+			
+			.position {
+				padding-bottom: 0.5rem;
+				text-transform: uppercase;
+				text-align: center;
+			}
 		</style>
 	</head>
 
@@ -224,7 +243,11 @@
 
 				if (typeof heading !== "undefined" && heading !== null) { // && typeof orientation !== "undefined") {
 					// we have a browser that reports device heading and orientation
-					meshCompass.rotation.y = heading;
+					var phase = heading < 0 ? 360 + heading : heading;
+					positionHng.textContent = (360 - phase | 0) + "°";
+
+					var radHeading = heading * (Math.PI / 180);
+					meshCompass.rotateY(radHeading);
 				}
 			}
 
@@ -308,19 +331,21 @@
 			});
 
 		</script>
-		<div class='position row'>
-			<div class='column-33'>
-			  <div class='label'>HDG</div>
-			  <div id='position-hng'>n/a</div>
-			</div
-			><div class='column-33'>
-			  <div class='label'>Lat</div>
-			  <div id='position-lat'>&#8943;</div>
-			</div
-			><div class='column-33'>
-			  <div class='label'>Lng</div>
-			  <div id='position-lng'>&#8943;</div>
+		<div class="status">
+			<div class='position row'>
+				<div class='column-33'>
+				<div class='label'>HDG</div>
+				<div id='position-hng'>n/a</div>
+				</div
+				><div class='column-33'>
+				<div class='label'>Lat</div>
+				<div id='position-lat'>&#8943;</div>
+				</div
+				><div class='column-33'>
+				<div class='label'>Lng</div>
+				<div id='position-lng'>&#8943;</div>
+				</div>
 			</div>
-		  </div>
+		</div>
 	</body>
 </html>
