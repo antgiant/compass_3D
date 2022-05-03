@@ -93,6 +93,10 @@
 			var positionLat = document.getElementById("position-lat");
 			var positionLng = document.getElementById("position-lng");
 			var positionHng = document.getElementById("position-hng");
+			var positionAlpha = document.getElementById("alpha");
+			var positionBeta = document.getElementById("beta");
+			var positionGamma = document.getElementById("gamma");
+			var positionCompass = document.getElementById("compass");
 
 			const textureLoader = new THREE.TextureLoader();
 
@@ -106,7 +110,7 @@
 			function init() {
 
 				camera = new THREE.PerspectiveCamera( 25, SCREEN_WIDTH / SCREEN_HEIGHT, 50, 1e7 );
-				camera.position.z = radius * 5;
+				camera.position.z = radius * 7;
 
 				scene = new THREE.Scene();
 				//scene.fog = new THREE.FogExp2( 0x000000, 0.00000025 );
@@ -150,7 +154,7 @@
 
 				// compass
 
-				geometry = new THREE.SphereGeometry( radius, 100, 50 );
+				geometry = new THREE.SphereGeometry( radius, 100, 100 );
 
 				meshCompass = new THREE.Mesh( geometry, materialNormalMap );
 				scene.add( meshCompass );
@@ -170,7 +174,7 @@
 					transmission: 1,
 					thickness: 0.05
 				});
-				shinyBallGeom = new THREE.SphereGeometry(radius + (radius*0.05), 100, 50);
+				shinyBallGeom = new THREE.SphereGeometry(radius + (radius*0.05), 100, 100);
 				shinyBallMesh = new THREE.Mesh(shinyBallGeom, shinyBallNormalMap);
 				scene.add(shinyBallMesh);
 
@@ -247,8 +251,13 @@
 					positionHng.textContent = (360 - phase | 0) + "°";
 
 					var euler = new THREE.Euler(0, 0, 0, 'ZXY');
-					euler.set((event.gamma * (Math.PI / 180)), (event.alpha * (Math.PI / 180)), (event.beta * (Math.PI / 180)), 'ZXY');
+					euler.set((event.gamma * (Math.PI / 180)), (event.alpha * (Math.PI / 180))*-1, (event.beta * (Math.PI / 180)), 'ZXY');
 					meshCompass.setRotationFromEuler(euler);
+
+					positionAlpha.textContent = event.alpha.toFixed(1);
+					positionBeta.textContent = event.beta.toFixed(1);
+					positionGamma.textContent = event.gamma.toFixed(1);
+					positionCompass.textContent = event.webkitCompassHeading.toFixed(1);
 				}
 			}
 
@@ -345,6 +354,27 @@
 				><div class='column-33'>
 				<div class='label'>Lng</div>
 				<div id='position-lng'>&#8943;</div>
+				</div>
+			</div>
+			<div class='position row'>
+				<div class='column-33'>
+				<div class='label'>Alpha</div>
+				<div id='alpha'>n/a</div>
+				</div
+				><div class='column-33'>
+				<div class='label'>Beta</div>
+				<div id='beta'>&#8943;</div>
+				</div
+				><div class='column-33'>
+				<div class='label'>Gamma</div>
+				<div id='gamma'>&#8943;</div>
+				</div>
+			</div>
+			<div class='position row'>
+				<div class='column-33'>
+					<div class='label'>Compass</div>
+					<div id='compass'>n/a</div>
+				</div>
 				</div>
 			</div>
 		</div>
