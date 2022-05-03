@@ -247,7 +247,7 @@
 					positionHng.textContent = (360 - phase | 0) + "°";
 
 					var euler = new THREE.Euler(0, 0, 0, 'ZXY');
-					euler.set((event.alpha * (Math.PI / 180)), (event.beta * (Math.PI / 180)), (event.gamma * (Math.PI / 180)));
+					euler.set((event.gamma * (Math.PI / 180)), (event.alpha * (Math.PI / 180)), (event.beta * (Math.PI / 180)), 'ZXY');
 					meshCompass.setRotationFromEuler(euler);
 				}
 			}
