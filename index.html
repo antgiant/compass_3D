@@ -321,7 +321,7 @@
 				positionHng.textContent = (360 - phase | 0) + "°";
 				
 				var euler = new THREE.Euler(0, 0, 0, 'ZXY');
-				euler.set(THREE.Math.degToRad(90 - event.beta), THREE.Math.degToRad(90 - (-1*positionCurrent.hng)), THREE.Math.degToRad(event.gamma));
+				euler.set(THREE.Math.degToRad(90 - event.beta), THREE.Math.degToRad(-90 - (-1*positionCurrent.hng)), THREE.Math.degToRad(event.gamma));
 				meshCompass.setRotationFromEuler(euler);
 				
 				positionAlpha.textContent = event.alpha.toFixed(1);
