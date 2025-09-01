@@ -211,6 +211,7 @@
 			
 			composer.addPass(renderModel);
 			composer.addPass(effectFilm);
+			composer.addPass(new OutputPass());
 			
 		}
 		
@@ -247,10 +248,6 @@
 			composer.render(delta);
 			
 		}
-		
-		// the orientation of the device on app load
-		var defaultOrientation;
-		
 		
 		// browser agnostic orientation
 		function getBrowserOrientation() {
@@ -290,35 +287,13 @@
 		
 		
 		function onHeadingChange(event) {
-			var heading = -1 * event.webkitCompassHeading || event.alpha;
+			let heading = (typeof event.webkitCompassHeading === 'number') ?	-event.webkitCompassHeading :	event.alpha;
 			
 			var orientation = getBrowserOrientation();
 			
 			if (typeof heading !== "undefined" && heading !== null) { // && typeof orientation !== "undefined") {
 				
-				// what adjustment we have to add to rotation to allow for current device orientation
-				var adjustment = 0;
-				if (defaultOrientation === "landscape") {
-					adjustment -= 90;
-				}
-				
-				if (typeof orientation !== "undefined") {
-					var currentOrientation = orientation.split("-");
-					
-					if (defaultOrientation !== currentOrientation[0]) {
-						if (defaultOrientation === "landscape") {
-							adjustment -= 270;
-						} else {
-							adjustment -= 90;
-						}
-					}
-					
-					if (currentOrientation[1] === "secondary") {
-						adjustment -= 180;
-					}
-				}
-				
-				positionCurrent.hng = heading - window.orientation; // + adjustment;
+				positionCurrent.hng = heading - screen.orientation?.angle ?? 0;
 				
 				// we have a browser that reports device heading and orientation
 				var phase = positionCurrent.hng < 0 ? 360 + positionCurrent.hng : positionCurrent.hng;
@@ -449,7 +424,6 @@
 				<div id='compass'>n/a</div>
 			</div>
 		</div>
-	</div>
 	</div>
 </body>
 
