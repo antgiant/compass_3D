@@ -1,450 +1,452 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<title>Live Ball Compass</title>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<link type="text/css" rel="stylesheet" href="main.css">
-		<style>
-			body {
-				background:#000;
-				color: #eee;
-			}
 
-			a {
-				color: #0080ff;
-			}
+<head>
+	<title>Live Ball Compass</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link type="text/css" rel="stylesheet" href="main.css">
+	<style>
+		body {
+			background: #000;
+			color: #eee;
+		}
+		
+		a {
+			color: #0080ff;
+		}
+		
+		b {
+			color: orange
+		}
+		
+		[class^="column-"] {
+			display: inline-block;
+		}
+		
+		.column-33 {
+			width: 33.33333%;
+		}
+		
+		.status {
+			position: fixed;
+			left: 0;
+			right: 0;
+			bottom: 0;
+		}
+		
+		.position {
+			padding-bottom: 0.5rem;
+			text-transform: uppercase;
+			text-align: center;
+		}
+	</style>
+</head>
 
-			b {
-				color: orange
-			}
-			[class^="column-"] {
-				display: inline-block;
-			}
-
-			.column-33 {
-				width: 33.33333%;
-			}
-			.status {
-				position: fixed;
-				left: 0;
-				right: 0;
-				bottom: 0;
-			}
-			
-			.position {
-				padding-bottom: 0.5rem;
-				text-transform: uppercase;
-				text-align: center;
-			}
-		</style>
-	</head>
-
-	<body>
-
-		<div id="info">Ball Compass<br/>
-		</div>
-
-		<!-- Import maps polyfill -->
-		<!-- Remove this when import maps will be widely supported -->
-		<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
-
-		<script type="importmap">
-			{
+<body>
+	
+	<div id="info">Ball Compass<br />
+	</div>
+	
+	<!-- Import maps polyfill -->
+	<!-- Remove this when import maps will be widely supported -->
+	<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+	
+	<script type="importmap">
+		{
 				"imports": {
 					"three": "./build/three.module.js"
 				}
 			}
 		</script>
-
-		<script type="module">
-
-			import * as THREE from 'three';
-
-			import Stats from './jsm/libs/stats.module.js';
-
-			import { OrbitControls } from './jsm/controls/OrbitControls.js';
-			import { EffectComposer } from './jsm/postprocessing/EffectComposer.js';
-			import { RenderPass } from './jsm/postprocessing/RenderPass.js';
-			import { FilmPass } from './jsm/postprocessing/FilmPass.js';
-
-			const radius = 100;
-			const tilt = 0.41;
-			const rotationSpeed = 1.02;
-
-			const MARGIN = 0;
-			let SCREEN_HEIGHT = window.innerHeight - MARGIN * 2;
-			let SCREEN_WIDTH = window.innerWidth;
-
-			let camera, scene, renderer, stats, controls;
-			let geometry, meshCompass, shinyBallGeom, shinyBallMesh;
-			let dirLight, dirLight2, dirLight3, dirLight4, dirLight5, dirLight6;
-
-			let composer;
-
-			// our current position
-			let positionCurrent = {
-				lat: null,
-				lng: null,
-				hng: null
-			};
-
-			// elements that ouput our position
-			var positionLat = document.getElementById("position-lat");
-			var positionLng = document.getElementById("position-lng");
-			var positionHng = document.getElementById("position-hng");
-			var positionAlpha = document.getElementById("alpha");
-			var positionBeta = document.getElementById("beta");
-			var positionGamma = document.getElementById("gamma");
-			var positionCompass = document.getElementById("compass");
-
-			const textureLoader = new THREE.TextureLoader();
-
-			let d, dPlanet;
-
-			const clock = new THREE.Clock();
-
-			init();
-			animate();
-
-			function init() {
-
-				camera = new THREE.PerspectiveCamera( 25, SCREEN_WIDTH / SCREEN_HEIGHT, 50, 1e7 );
-				camera.position.z = radius * 7;
-
-				scene = new THREE.Scene();
-				//scene.fog = new THREE.FogExp2( 0x000000, 0.00000025 );
-
-				dirLight = new THREE.DirectionalLight( 0xffffff );
-				dirLight.position.set( - 1, 0, 1 ).normalize();
-				scene.add( dirLight );
-
-				dirLight2 = new THREE.DirectionalLight( 0xffffff );
-				dirLight2.position.set(  1, 0, 1 ).normalize();
-				scene.add( dirLight2 );
-
-				dirLight3 = new THREE.DirectionalLight( 0xffffff );
-				dirLight3.position.set(  -1, 0, -1 ).normalize();
-				scene.add( dirLight3 );
-
-				dirLight4 = new THREE.DirectionalLight( 0xffffff );
-				dirLight4.position.set(  1, 0, -1 ).normalize();
-				scene.add( dirLight4 );
-
-				dirLight5 = new THREE.DirectionalLight( 0xffffff );
-				dirLight5.position.set(  0, 1, 0 ).normalize();
-				scene.add( dirLight5 );
-
-				dirLight6 = new THREE.DirectionalLight( 0xffffff );
-				dirLight6.position.set(  0, -1, 0 ).normalize();
-				scene.add( dirLight6 );
-
-				const materialNormalMap = new THREE.MeshPhongMaterial( {
-
-					specular: 0x333333,
-					shininess: 15,
-					map: textureLoader.load( "textures/ball_compass.jpg" ),
-					//specularMap: textureLoader.load( "textures/ball_compass.jpg" ),
-					//normalMap: textureLoader.load( "textures/ball_compass.jpg" ),
-
-					// y scale is negated to compensate for normal map handedness.
-					normalScale: new THREE.Vector2( 1, -1 )
-
-				} );
-
-				// compass
-
-				geometry = new THREE.SphereGeometry( radius, 100, 100 );
-
-				meshCompass = new THREE.Mesh( geometry, materialNormalMap );
-				scene.add( meshCompass );
-
-				// Shiny Glass Ball
-
-				const roughNormal = textureLoader.load("textures/Water_2_M_Normal.jpeg");
-				const clearcoatNormal = textureLoader.load(
-					"textures/Scratched_gold_01_1K_Normal.png"
-				);
-
-				const shinyBallNormalMap = new THREE.MeshPhysicalMaterial({
-					normalMap: roughNormal,
-					clearcoat: 1,
-					clearcoatNormalMap: clearcoatNormal,
-					roughness: 0.0515,
-					transmission: 1,
-					thickness: 0.05
-				});
-				shinyBallGeom = new THREE.SphereGeometry(radius + (radius*0.05), 100, 100);
-				shinyBallMesh = new THREE.Mesh(shinyBallGeom, shinyBallNormalMap);
-				scene.add(shinyBallMesh);
-
-				renderer = new THREE.WebGLRenderer( { antialias: true } );
-				renderer.setPixelRatio( window.devicePixelRatio );
-				renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
-				document.body.appendChild( renderer.domElement );
-
-				//
-
-				controls = new OrbitControls( camera, renderer.domElement );
-
-				controls.domElement = renderer.domElement;
-
-				//
-
-				stats = new Stats();
-				document.body.appendChild( stats.dom );
-
-				window.addEventListener( 'resize', onWindowResize );
-
-				// postprocessing
-
-				const renderModel = new RenderPass( scene, camera );
-				const effectFilm = new FilmPass( 0.35, 0.75, 2048, false );
-
-				composer = new EffectComposer( renderer );
-
-				composer.addPass( renderModel );
-				composer.addPass( effectFilm );
-
-			}
-
-			function onWindowResize() {
-
-				SCREEN_HEIGHT = window.innerHeight;
-				SCREEN_WIDTH = window.innerWidth;
-
-				camera.aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
-				camera.updateProjectionMatrix();
-
-				renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
-				composer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
-
-			}
-
-			function animate() {
-
-				requestAnimationFrame( animate );
-
-				render();
-				stats.update();
-
-			}
-
-			function render() {
-
-				// rotate the compass
-
-				const delta = clock.getDelta();
-
-				//meshCompass.rotation.y += rotationSpeed * delta;
-
-				composer.render( delta );
-
+	
+	<script type="module">
+		import * as THREE from 'three';
+		
+		import Stats from './jsm/libs/stats.module.js';
+		
+		import { OrbitControls } from './jsm/controls/OrbitControls.js';
+		import { EffectComposer } from './jsm/postprocessing/EffectComposer.js';
+		import { RenderPass } from './jsm/postprocessing/RenderPass.js';
+		import { FilmPass } from './jsm/postprocessing/FilmPass.js';
+		
+		const radius = 100;
+		const tilt = 0.41;
+		const rotationSpeed = 1.02;
+		
+		const MARGIN = 0;
+		let SCREEN_HEIGHT = window.innerHeight - MARGIN * 2;
+		let SCREEN_WIDTH = window.innerWidth;
+		
+		let camera, scene, renderer, stats, controls;
+		let geometry, meshCompass, shinyBallGeom, shinyBallMesh;
+		let dirLight, dirLight2, dirLight3, dirLight4, dirLight5, dirLight6;
+		
+		let composer;
+		
+		// our current position
+		let positionCurrent = {
+			lat: null,
+			lng: null,
+			hng: null
+		};
+		
+		// elements that ouput our position
+		var positionLat = document.getElementById("position-lat");
+		var positionLng = document.getElementById("position-lng");
+		var positionHng = document.getElementById("position-hng");
+		var positionAlpha = document.getElementById("alpha");
+		var positionBeta = document.getElementById("beta");
+		var positionGamma = document.getElementById("gamma");
+		var positionCompass = document.getElementById("compass");
+		
+		const textureLoader = new THREE.TextureLoader();
+		
+		let d, dPlanet;
+		
+		const clock = new THREE.Clock();
+		
+		init();
+		animate();
+		
+		function init() {
+			
+			camera = new THREE.PerspectiveCamera(25, SCREEN_WIDTH / SCREEN_HEIGHT, 50, 1e7);
+			camera.position.z = radius * 7;
+			
+			scene = new THREE.Scene();
+			//scene.fog = new THREE.FogExp2( 0x000000, 0.00000025 );
+			
+			dirLight = new THREE.DirectionalLight(0xffffff);
+			dirLight.position.set(-1, 0, 1).normalize();
+			scene.add(dirLight);
+			
+			dirLight2 = new THREE.DirectionalLight(0xffffff);
+			dirLight2.position.set(1, 0, 1).normalize();
+			scene.add(dirLight2);
+			
+			dirLight3 = new THREE.DirectionalLight(0xffffff);
+			dirLight3.position.set(-1, 0, -1).normalize();
+			scene.add(dirLight3);
+			
+			dirLight4 = new THREE.DirectionalLight(0xffffff);
+			dirLight4.position.set(1, 0, -1).normalize();
+			scene.add(dirLight4);
+			
+			dirLight5 = new THREE.DirectionalLight(0xffffff);
+			dirLight5.position.set(0, 1, 0).normalize();
+			scene.add(dirLight5);
+			
+			dirLight6 = new THREE.DirectionalLight(0xffffff);
+			dirLight6.position.set(0, -1, 0).normalize();
+			scene.add(dirLight6);
+			
+			const materialNormalMap = new THREE.MeshPhongMaterial({
+				
+				specular: 0x333333,
+				shininess: 15,
+				map: textureLoader.load("textures/ball_compass.jpg"),
+				//specularMap: textureLoader.load( "textures/ball_compass.jpg" ),
+				//normalMap: textureLoader.load( "textures/ball_compass.jpg" ),
+				
+				// y scale is negated to compensate for normal map handedness.
+				normalScale: new THREE.Vector2(1, -1)
+				
+			});
+			
+			// compass
+			
+			geometry = new THREE.SphereGeometry(radius, 100, 100);
+			
+			meshCompass = new THREE.Mesh(geometry, materialNormalMap);
+			scene.add(meshCompass);
+			
+			// Shiny Glass Ball
+			
+			const roughNormal = textureLoader.load("textures/Water_2_M_Normal.jpeg");
+			const clearcoatNormal = textureLoader.load(
+				"textures/Scratched_gold_01_1K_Normal.png"
+			);
+			
+			const shinyBallNormalMap = new THREE.MeshPhysicalMaterial({
+				normalMap: roughNormal,
+				clearcoat: 1,
+				clearcoatNormalMap: clearcoatNormal,
+				roughness: 0.0515,
+				transmission: 1,
+				thickness: 0.05
+			});
+			shinyBallGeom = new THREE.SphereGeometry(radius + (radius * 0.05), 100, 100);
+			shinyBallMesh = new THREE.Mesh(shinyBallGeom, shinyBallNormalMap);
+			scene.add(shinyBallMesh);
+			
+			renderer = new THREE.WebGLRenderer({ antialias: true });
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+			document.body.appendChild(renderer.domElement);
+			
+			//
+			
+			controls = new OrbitControls(camera, renderer.domElement);
+			
+			controls.domElement = renderer.domElement;
+			
+			//
+			
+			stats = new Stats();
+			document.body.appendChild(stats.dom);
+			
+			window.addEventListener('resize', onWindowResize);
+			
+			// postprocessing
+			
+			const renderModel = new RenderPass(scene, camera);
+			const effectFilm = new FilmPass(0.35, 0.75, 2048, false);
+			
+			composer = new EffectComposer(renderer);
+			
+			composer.addPass(renderModel);
+			composer.addPass(effectFilm);
+			
+		}
+		
+		function onWindowResize() {
+			
+			SCREEN_HEIGHT = window.innerHeight;
+			SCREEN_WIDTH = window.innerWidth;
+			
+			camera.aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
+			camera.updateProjectionMatrix();
+			
+			renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+			composer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+			
+		}
+		
+		function animate() {
+			
+			requestAnimationFrame(animate);
+			
+			render();
+			stats.update();
+			
+		}
+		
+		function render() {
+			
+			// rotate the compass
+			
+			const delta = clock.getDelta();
+			
+			//meshCompass.rotation.y += rotationSpeed * delta;
+			
+			composer.render(delta);
+			
+		}
+		
+		// the orientation of the device on app load
+		var defaultOrientation;
+		
+		
+		// browser agnostic orientation
+		function getBrowserOrientation() {
+			var orientation;
+			if (screen.orientation && screen.orientation.type) {
+				orientation = screen.orientation.type;
+			} else {
+				orientation = screen.orientation ||
+					screen.mozOrientation ||
+					screen.msOrientation;
 			}
 			
-			  // the orientation of the device on app load
-  var defaultOrientation;
+			/*
+			  'portait-primary':      for (screen width < screen height, e.g. phone, phablet, small tablet)
+			                            device is in 'normal' orientation
+			                          for (screen width > screen height, e.g. large tablet, laptop)
+			                            device has been turned 90deg clockwise from normal
 
+			  'portait-secondary':    for (screen width < screen height)
+			                            device has been turned 180deg from normal
+			                          for (screen width > screen height)
+			                            device has been turned 90deg anti-clockwise (or 270deg clockwise) from normal
 
-  // browser agnostic orientation
-  function getBrowserOrientation() {
-    var orientation;
-    if (screen.orientation && screen.orientation.type) {
-      orientation = screen.orientation.type;
-    } else {
-      orientation = screen.orientation ||
-                    screen.mozOrientation ||
-                    screen.msOrientation;
-    }
+			  'landscape-primary':    for (screen width < screen height)
+			                            device has been turned 90deg clockwise from normal
+			                          for (screen width > screen height)
+			                            device is in 'normal' orientation
 
-    /*
-      'portait-primary':      for (screen width < screen height, e.g. phone, phablet, small tablet)
-                                device is in 'normal' orientation
-                              for (screen width > screen height, e.g. large tablet, laptop)
-                                device has been turned 90deg clockwise from normal
-
-      'portait-secondary':    for (screen width < screen height)
-                                device has been turned 180deg from normal
-                              for (screen width > screen height)
-                                device has been turned 90deg anti-clockwise (or 270deg clockwise) from normal
-
-      'landscape-primary':    for (screen width < screen height)
-                                device has been turned 90deg clockwise from normal
-                              for (screen width > screen height)
-                                device is in 'normal' orientation
-
-      'landscape-secondary':  for (screen width < screen height)
-                                device has been turned 90deg anti-clockwise (or 270deg clockwise) from normal
-                              for (screen width > screen height)
-                                device has been turned 180deg from normal
-    */
-
-    return orientation;
-  }
-
-
-			function onHeadingChange(event) {
-				var heading = -1*event.webkitCompassHeading || event.alpha;
+			  'landscape-secondary':  for (screen width < screen height)
+			                            device has been turned 90deg anti-clockwise (or 270deg clockwise) from normal
+			                          for (screen width > screen height)
+			                            device has been turned 180deg from normal
+			*/
+			
+			return orientation;
+		}
+		
+		
+		function onHeadingChange(event) {
+			var heading = -1 * event.webkitCompassHeading || event.alpha;
+			
+			var orientation = getBrowserOrientation();
+			
+			if (typeof heading !== "undefined" && heading !== null) { // && typeof orientation !== "undefined") {
 				
-				var orientation = getBrowserOrientation();
-
-				if (typeof heading !== "undefined" && heading !== null) { // && typeof orientation !== "undefined") {
-				
-				      // what adjustment we have to add to rotation to allow for current device orientation
-      var adjustment = 0;
-      if (defaultOrientation === "landscape") {
-      	adjustment -= 90;
-      }
-      
-      if (typeof orientation !== "undefined") {
-      	var currentOrientation = orientation.split("-");
-      	
-      	if (defaultOrientation !== currentOrientation[0]) {
-      		if (defaultOrientation === "landscape") {
-      			adjustment -= 270;
-      		} else {
-      			adjustment -= 90;
-      		}
-      	}
-      	
-      	if (currentOrientation[1] === "secondary") {
-      		adjustment -= 180;
-      	}
-      }
-      
-      positionCurrent.hng = heading - window.orientation; // + adjustment;
-      
-					// we have a browser that reports device heading and orientation
-					var phase = positionCurrent.hng < 0 ? 360 + positionCurrent.hng : positionCurrent.hng;
-      positionHng.textContent = (360 - phase | 0) + "°";
-
-					var euler = new THREE.Euler(0, 0, 0, 'ZXY');
-					euler.set(THREE.Math.degToRad(90 - event.beta), THREE.Math.degToRad(positionCurrent.hng), THREE.Math.degToRad(event.gamma));
-					meshCompass.setRotationFromEuler(euler);
-
-					positionAlpha.textContent = event.alpha.toFixed(1);
-					positionBeta.textContent = event.beta.toFixed(1);
-					positionGamma.textContent = event.gamma.toFixed(1);
-					positionCompass.textContent = positionCurrent.hng.toFixed(1);
+				// what adjustment we have to add to rotation to allow for current device orientation
+				var adjustment = 0;
+				if (defaultOrientation === "landscape") {
+					adjustment -= 90;
 				}
+				
+				if (typeof orientation !== "undefined") {
+					var currentOrientation = orientation.split("-");
+					
+					if (defaultOrientation !== currentOrientation[0]) {
+						if (defaultOrientation === "landscape") {
+							adjustment -= 270;
+						} else {
+							adjustment -= 90;
+						}
+					}
+					
+					if (currentOrientation[1] === "secondary") {
+						adjustment -= 180;
+					}
+				}
+				
+				positionCurrent.hng = heading - window.orientation; // + adjustment;
+				
+				// we have a browser that reports device heading and orientation
+				var phase = positionCurrent.hng < 0 ? 360 + positionCurrent.hng : positionCurrent.hng;
+				positionHng.textContent = (360 - phase | 0) + "°";
+				
+				var euler = new THREE.Euler(0, 0, 0, 'ZXY');
+				euler.set(THREE.Math.degToRad(90 - event.beta), THREE.Math.degToRad(positionCurrent.hng), THREE.Math.degToRad(event.gamma));
+				meshCompass.setRotationFromEuler(euler);
+				
+				positionAlpha.textContent = event.alpha.toFixed(1);
+				positionBeta.textContent = event.beta.toFixed(1);
+				positionGamma.textContent = event.gamma.toFixed(1);
+				positionCompass.textContent = positionCurrent.hng.toFixed(1);
 			}
-
-			function locationUpdate(position) {
-				positionCurrent.lat = position.coords.latitude;
-				positionCurrent.lng = position.coords.longitude;
-
-				positionLat.textContent = decimalToSexagesimal(positionCurrent.lat, "lat");
-				positionLng.textContent = decimalToSexagesimal(positionCurrent.lng, "lng");
-			}
-
-			function locationUpdateFail(error) {
-				positionLat.textContent = "n/a";
-				positionLng.textContent = "n/a";
-				console.log("location fail: ", error);
-			}
-
-			function decimalToSexagesimal(decimal, type) {
-				var degrees = decimal | 0;
-				var fraction = Math.abs(decimal - degrees);
-				var minutes = (fraction * 60) | 0;
-				var seconds = (fraction * 3600 - minutes * 60) | 0;
-
-				var direction = "";
-				var positive = degrees > 0;
-				degrees = Math.abs(degrees);
-				switch (type) {
+		}
+		
+		function locationUpdate(position) {
+			positionCurrent.lat = position.coords.latitude;
+			positionCurrent.lng = position.coords.longitude;
+			
+			positionLat.textContent = decimalToSexagesimal(positionCurrent.lat, "lat");
+			positionLng.textContent = decimalToSexagesimal(positionCurrent.lng, "lng");
+		}
+		
+		function locationUpdateFail(error) {
+			positionLat.textContent = "n/a";
+			positionLng.textContent = "n/a";
+			console.log("location fail: ", error);
+		}
+		
+		function decimalToSexagesimal(decimal, type) {
+			var degrees = decimal | 0;
+			var fraction = Math.abs(decimal - degrees);
+			var minutes = (fraction * 60) | 0;
+			var seconds = (fraction * 3600 - minutes * 60) | 0;
+			
+			var direction = "";
+			var positive = degrees > 0;
+			degrees = Math.abs(degrees);
+			switch (type) {
 				case "lat":
 					direction = positive ? "N" : "S";
 					break;
 				case "lng":
 					direction = positive ? "E" : "W";
 					break;
-				}
-
-				return degrees + "° " + minutes + "' " + seconds + "\" " + direction;
 			}
-
-			function requestDeviceOrientation(callback) {
-				if (window.DeviceOrientationEvent == null) {
-					callback(new Error("DeviceOrientation is not supported."));
-				} else if (DeviceOrientationEvent.requestPermission) {
-					DeviceOrientationEvent.requestPermission().then(function(state) {
-						if (state == "granted") {
-							callback(null);
-						} else callback(new Error("Permission denied by user"));
-					}, function(err) {
-						callback(err);
-					});
-				} else { // no need for permission
-					callback(null);
-				}
-			}
-
-			function firstClick() {
-				requestDeviceOrientation(function(err) {
-					if (err == null) {
-						window.removeEventListener("click", firstClick);
-						window.removeEventListener("touchend", firstClick);
-						window.addEventListener("devicemotion", function(e) {
-							// access e.acceleration, etc.
-						});
-					} else {
-						// failed; a JS error object is stored in `err`
-					}
+			
+			return degrees + "° " + minutes + "' " + seconds + "\" " + direction;
+		}
+		
+		function requestDeviceOrientation(callback) {
+			if (window.DeviceOrientationEvent == null) {
+				callback(new Error("DeviceOrientation is not supported."));
+			} else if (DeviceOrientationEvent.requestPermission) {
+				DeviceOrientationEvent.requestPermission().then(function(state) {
+					if (state == "granted") {
+						callback(null);
+					} else callback(new Error("Permission denied by user"));
+				}, function(err) {
+					callback(err);
 				});
+			} else { // no need for permission
+				callback(null);
 			}
-			window.addEventListener("click", firstClick);
-			window.addEventListener("touchend", firstClick);
-
-			if ('ondeviceorientationabsolute' in window) {
-				window.addEventListener("deviceorientationabsolute", onHeadingChange, true);
-			} else {
-				window.addEventListener("deviceorientation", onHeadingChange, true);
-			}
-
-			navigator.geolocation.watchPosition(locationUpdate, locationUpdateFail, {
-				enableHighAccuracy: false,
-				maximumAge: 30000,
-				timeout: 27000
+		}
+		
+		function firstClick() {
+			requestDeviceOrientation(function(err) {
+				if (err == null) {
+					window.removeEventListener("click", firstClick);
+					window.removeEventListener("touchend", firstClick);
+					window.addEventListener("devicemotion", function(e) {
+						// access e.acceleration, etc.
+					});
+				} else {
+					// failed; a JS error object is stored in `err`
+				}
 			});
-
-		</script>
-		<div class="status">
-			<div class='position row'>
-				<div class='column-33'>
+		}
+		window.addEventListener("click", firstClick);
+		window.addEventListener("touchend", firstClick);
+		
+		if ('ondeviceorientationabsolute' in window) {
+			window.addEventListener("deviceorientationabsolute", onHeadingChange, true);
+		} else {
+			window.addEventListener("deviceorientation", onHeadingChange, true);
+		}
+		
+		navigator.geolocation.watchPosition(locationUpdate, locationUpdateFail, {
+			enableHighAccuracy: false,
+			maximumAge: 30000,
+			timeout: 27000
+		});
+	</script>
+	<div class="status">
+		<div class='position row'>
+			<div class='column-33'>
 				<div class='label'>HDG</div>
 				<div id='position-hng'>n/a</div>
-				</div
-				><div class='column-33'>
+			</div>
+			<div class='column-33'>
 				<div class='label'>Lat</div>
 				<div id='position-lat'>&#8943;</div>
-				</div
-				><div class='column-33'>
+			</div>
+			<div class='column-33'>
 				<div class='label'>Lng</div>
 				<div id='position-lng'>&#8943;</div>
-				</div>
-			</div>
-			<div class='position row'>
-				<div class='column-33'>
-				<div class='label'>Alpha</div>
-				<div id='alpha'>n/a</div>
-				</div
-				><div class='column-33'>
-				<div class='label'>Beta</div>
-				<div id='beta'>&#8943;</div>
-				</div
-				><div class='column-33'>
-				<div class='label'>Gamma</div>
-				<div id='gamma'>&#8943;</div>
-				</div>
-			</div>
-			<div class='position row'>
-				<div class='column-33'>
-					<div class='label'>Compass</div>
-					<div id='compass'>n/a</div>
-				</div>
-				</div>
 			</div>
 		</div>
-	</body>
+		<div class='position row'>
+			<div class='column-33'>
+				<div class='label'>Alpha</div>
+				<div id='alpha'>n/a</div>
+			</div>
+			<div class='column-33'>
+				<div class='label'>Beta</div>
+				<div id='beta'>&#8943;</div>
+			</div>
+			<div class='column-33'>
+				<div class='label'>Gamma</div>
+				<div id='gamma'>&#8943;</div>
+			</div>
+		</div>
+		<div class='position row'>
+			<div class='column-33'>
+				<div class='label'>Compass</div>
+				<div id='compass'>n/a</div>
+			</div>
+		</div>
+	</div>
+	</div>
+</body>
+
 </html>
