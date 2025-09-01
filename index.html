@@ -284,29 +284,48 @@
 			return orientation;
 		}
 		
+		function computeHeadingFromOrientation(event) {
+			// Prefer a fused + tilt-compensated heading if the browser provides it (iOS Safari).
+			if (typeof event.webkitCompassHeading === 'number') {
+				// iOS gives 0 = North, clockwise positive.
+				return (360 - event.webkitCompassHeading + (screen.orientation?.angle ?? 0)) % 360;
+			}
+			
+			// Otherwise, build a quaternion from alpha/beta/gamma and screen orientation.
+			const deg2rad = Math.PI / 180;
+			const alpha = (event.alpha || 0) * deg2rad; // z
+			const beta = (event.beta || 0) * deg2rad; // x
+			const gamma = (event.gamma || 0) * deg2rad; // y
+			const so = ((screen.orientation?.angle ?? 0) * deg2rad);
+			
+			// Use the same convention as DeviceOrientationControls: order 'YXZ'
+			// q = R_y(alpha) * R_x(beta) * R_z(gamma)
+			const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
+			const q = new THREE.Quaternion().setFromEuler(euler);
+			
+			// Apply screen orientation (rotate about world Z by -so)
+			const qScreen = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -so);
+			q.premultiply(qScreen);
+			
+			// Transform a forward vector and project onto the horizontal plane (X–Y)
+			const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
+			fwd.z = 0;
+			if (fwd.lengthSq() < 1e-6) return 0; // fallback if near-vertical straight up/down
+			fwd.normalize();
+			
+			// Convert to compass bearing: 0° = North (+Y), clockwise positive
+			let heading = Math.atan2(fwd.x, fwd.y) * 180 / Math.PI;
+			if (heading < 0) heading += 360;
+			return heading;
+		}
 		
 		function onHeadingChange(event) {
-			let heading = (typeof event.webkitCompassHeading === 'number') ?	-event.webkitCompassHeading :	event.alpha;
 			
-			var orientation = getBrowserOrientation();
-			
-			if (typeof heading !== "undefined" && heading !== null) { // && typeof orientation !== "undefined") {
-				
-				positionCurrent.hng = heading - screen.orientation?.angle ?? 0;
-				
-				// we have a browser that reports device heading and orientation
-				var phase = positionCurrent.hng < 0 ? 360 + positionCurrent.hng : positionCurrent.hng;
-				positionHng.textContent = (360 - phase | 0) + "°";
-				
-				var euler = new THREE.Euler(0, 0, 0, 'ZXY');
-				euler.set(THREE.Math.degToRad(90 - event.beta), THREE.Math.degToRad(-1 * positionCurrent.hng), THREE.Math.degToRad(event.gamma));
-				meshCompass.setRotationFromEuler(euler);
-				
-				positionAlpha.textContent = event.alpha.toFixed(1);
-				positionBeta.textContent = event.beta.toFixed(1);
-				positionGamma.textContent = event.gamma.toFixed(1);
-				positionCompass.textContent = (-1 * positionCurrent.hng).toFixed(1);
-			}
+			positionAlpha.textContent = event.alpha.toFixed(1);
+			positionBeta.textContent = event.beta.toFixed(1);
+			positionGamma.textContent = event.gamma.toFixed(1);
+			positionCompass.textContent = (-1 * positionCurrent.hng).toFixed(1);
+		}
 		}
 		
 		function locationUpdate(position) {
