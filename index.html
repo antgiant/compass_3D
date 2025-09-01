@@ -158,6 +158,10 @@
 			
 			geometry = new THREE.SphereGeometry(radius, 100, 100);
 			
+			// shift the texture’s “north” to match Y-rotation
+			geometry.rotateY(Math.PI / 2);
+			
+			
 			meshCompass = new THREE.Mesh(geometry, materialNormalMap);
 			scene.add(meshCompass);
 			
@@ -321,13 +325,13 @@
 				positionHng.textContent = (360 - phase | 0) + "°";
 				
 				var euler = new THREE.Euler(0, 0, 0, 'ZXY');
-				euler.set(THREE.Math.degToRad(90 - event.beta), THREE.Math.degToRad(-1*positionCurrent.hng), THREE.Math.degToRad(event.gamma));
+				euler.set(THREE.Math.degToRad(90 - event.beta), THREE.Math.degToRad(-1 * positionCurrent.hng), THREE.Math.degToRad(event.gamma));
 				meshCompass.setRotationFromEuler(euler);
 				
 				positionAlpha.textContent = event.alpha.toFixed(1);
 				positionBeta.textContent = event.beta.toFixed(1);
 				positionGamma.textContent = event.gamma.toFixed(1);
-				positionCompass.textContent = (-1*positionCurrent.hng).toFixed(1);
+				positionCompass.textContent = (-1 * positionCurrent.hng).toFixed(1);
 			}
 		}
 		
