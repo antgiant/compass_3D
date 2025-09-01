@@ -105,9 +105,7 @@
 		import { EffectComposer } from './jsm/postprocessing/EffectComposer.js';
 		import { RenderPass } from './jsm/postprocessing/RenderPass.js';
 		import { FilmPass } from './jsm/postprocessing/FilmPass.js';
-		// imports at top
-		import { OutputPass } from './jsm/postprocessing/OutputPass.js';
-		
+
 		const radius = 100;
 		const tilt = 0.41;
 		const rotationSpeed = 1.02;
@@ -247,9 +245,6 @@
 			composer.addPass(new RenderPass(scene, camera));
 			
 			composer.addPass(effectFilm);
-			
-			// REQUIRED for r146+:
-			composer.addPass(new OutputPass());
 			
 		}
 		
