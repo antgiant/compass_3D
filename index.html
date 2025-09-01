@@ -319,30 +319,66 @@
 			return heading;
 		}
 		
+		function computeYawPitch(event) {
+			// Build device orientation quaternion (same conv. as DeviceOrientationControls)
+			const d2r = Math.PI / 180;
+			const alpha = (event.alpha || 0) * d2r; // z
+			const beta = (event.beta || 0) * d2r; // x
+			const gamma = (event.gamma || 0) * d2r; // y
+			const so = (screen.orientation?.angle ?? 0) * d2r;
+			
+			// q = R_y(alpha) * R_x(beta) * R_z(gamma)   with order 'YXZ'
+			const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
+			const q = new THREE.Quaternion().setFromEuler(euler);
+			
+			// Apply screen orientation (rotate around world Z by -so)
+			const qScreen = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -so);
+			const qTotal = qScreen.multiply(q);
+			
+			// Transform world-forward (0,0,-1) and right (1,0,0)
+			const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(qTotal); // device forward in world
+			const right = new THREE.Vector3(1, 0, 0).applyQuaternion(qTotal); // device right in world
+			
+			// ---- Yaw: angle in the horizontal (X–Z) plane, 0° = world -Z (forward), clockwise positive
+			// If you want 0°=North and North is -Z, this works:
+			let yaw = Math.atan2(fwd.x, -fwd.z); // [-π, π]
+			
+			// ---- Pitch: up/down tilt. Use the world-up (Y) component of forward.
+			//   asin(fwd.y) is stable and avoids roll coupling.
+			let pitch = Math.asin(THREE.MathUtils.clamp(fwd.y, -1, 1)); // [-π/2, π/2]
+			
+			// Optional: smooth or clamp if you want limited tilt
+			return { yawDeg: THREE.MathUtils.radToDeg(yaw), pitchDeg: THREE.MathUtils.radToDeg(pitch) };
+		}
+		
+		function computeHeadingFromOrientation(event) {
+			// Prefer fused, tilt-compensated heading on iOS if available
+			if (typeof event.webkitCompassHeading === 'number') {
+				return (360 - event.webkitCompassHeading + (screen.orientation?.angle ?? 0)) % 360;
+			}
+			// From yaw above (0..360, clockwise, 0 = North == -Z)
+			const { yawDeg } = computeYawPitch(event);
+			let heading = yawDeg;
+			if (heading < 0) heading += 360;
+			return heading;
+		}
+		
 		function onHeadingChange(event) {
-			const heading = computeHeadingFromOrientation(event);
+			const heading = computeHeadingFromOrientation(event); // 0..360
+			const { yawDeg, pitchDeg } = computeYawPitch(event); // yaw & pitch only
+			
 			positionHng.textContent = heading.toFixed(0) + '°';
 			positionCompass.textContent = heading.toFixed(1);
+			positionAlpha.textContent = (event.alpha ?? 0).toFixed(1);
+			positionBeta.textContent = (event.beta ?? 0).toFixed(1);
+			positionGamma.textContent = (event.gamma ?? 0).toFixed(1);
 			
-			
-			var orientation = getBrowserOrientation();
-			
-			if (typeof heading !== "undefined" && heading !== null) { // && typeof orientation !== "undefined") {
-				
-				positionCurrent.hng = heading - (screen.orientation?.angle ?? 0);
-				
-				// we have a browser that reports device heading and orientation
-				var phase = positionCurrent.hng < 0 ? 360 + positionCurrent.hng : positionCurrent.hng;
-				positionHng.textContent = (360 - phase | 0) + "°";
-				
-				const yawRad = THREE.MathUtils.degToRad(heading); // 0..360°
-				meshCompass.rotation.set(0, yawRad, 0);
-				
-				positionAlpha.textContent = event.alpha.toFixed(1);
-				positionBeta.textContent = event.beta.toFixed(1);
-				positionGamma.textContent = event.gamma.toFixed(1);
-				positionCompass.textContent = (positionCurrent.hng).toFixed(1);
-			}
+			// Apply to the mesh: (pitch around X, yaw around Y, roll = 0)
+			meshCompass.rotation.set(
+				THREE.MathUtils.degToRad(pitchDeg),
+				THREE.MathUtils.degToRad(yawDeg),
+				0
+			);
 		}
 		
 		function locationUpdate(position) {
