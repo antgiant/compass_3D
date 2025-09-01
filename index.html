@@ -320,12 +320,30 @@
 		}
 		
 		function onHeadingChange(event) {
+			const heading = computeHeadingFromOrientation(event);
+			positionHng.textContent = heading.toFixed(0) + '°';
+			positionCompass.textContent = heading.toFixed(1);
 			
-			positionAlpha.textContent = event.alpha.toFixed(1);
-			positionBeta.textContent = event.beta.toFixed(1);
-			positionGamma.textContent = event.gamma.toFixed(1);
-			positionCompass.textContent = (-1 * positionCurrent.hng).toFixed(1);
-		}
+			
+			var orientation = getBrowserOrientation();
+			
+			if (typeof heading !== "undefined" && heading !== null) { // && typeof orientation !== "undefined") {
+				
+				positionCurrent.hng = heading - screen.orientation?.angle ?? 0;
+				
+				// we have a browser that reports device heading and orientation
+				var phase = positionCurrent.hng < 0 ? 360 + positionCurrent.hng : positionCurrent.hng;
+				positionHng.textContent = (360 - phase | 0) + "°";
+				
+				var euler = new THREE.Euler(0, 0, 0, 'ZXY');
+				euler.set(THREE.Math.degToRad(90 - event.beta), THREE.Math.degToRad(-1 * positionCurrent.hng), THREE.Math.degToRad(event.gamma));
+				meshCompass.setRotationFromEuler(euler);
+				
+				positionAlpha.textContent = event.alpha.toFixed(1);
+				positionBeta.textContent = event.beta.toFixed(1);
+				positionGamma.textContent = event.gamma.toFixed(1);
+				positionCompass.textContent = (-1 * positionCurrent.hng).toFixed(1);
+			}
 		}
 		
 		function locationUpdate(position) {
