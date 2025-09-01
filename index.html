@@ -289,7 +289,7 @@
 		
 		function setObjectQuaternionFromDO(quat, alpha, beta, gamma, orient) {
 			// Same as THREE.DeviceOrientationControls
-			eulerYXZ.set(beta, alpha, -gamma); // 'YXZ'
+			eulerYXZ.set(-beta, alpha, -gamma); // 'YXZ'
 			quat.setFromEuler(eulerYXZ); // device
 			quat.multiply(q1); // -PI/2 around X to convert device -> world
 			quat.multiply(q0.setFromAxisAngle(zee, -orient)); // apply screen orientation
@@ -353,7 +353,7 @@
 			const so = (screen.orientation?.angle ?? 0) * d2r;
 			
 			// q = R_y(alpha) * R_x(beta) * R_z(gamma)   with order 'YXZ'
-			const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
+			const euler = new THREE.Euler(-beta, alpha, -gamma, 'YXZ');
 			const q = new THREE.Quaternion().setFromEuler(euler);
 			
 			// Apply screen orientation (rotate around world Z by -so)
