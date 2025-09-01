@@ -48,7 +48,43 @@
 	<div id="info">Ball Compass<br />
 	</div>
 	
-	<!-- Import maps polyfill -->
+	<div class="status">
+		<div class='position row'>
+			<div class='column-33'>
+				<div class='label'>HDG</div>
+				<div id='position-hng'>n/a</div>
+			</div>
+			<div class='column-33'>
+				<div class='label'>Lat</div>
+				<div id='position-lat'>&#8943;</div>
+			</div>
+			<div class='column-33'>
+				<div class='label'>Lng</div>
+				<div id='position-lng'>&#8943;</div>
+			</div>
+		</div>
+		<div class='position row'>
+			<div class='column-33'>
+				<div class='label'>Alpha</div>
+				<div id='alpha'>n/a</div>
+			</div>
+			<div class='column-33'>
+				<div class='label'>Beta</div>
+				<div id='beta'>&#8943;</div>
+			</div>
+			<div class='column-33'>
+				<div class='label'>Gamma</div>
+				<div id='gamma'>&#8943;</div>
+			</div>
+		</div>
+		<div class='position row'>
+			<div class='column-33'>
+				<div class='label'>Compass</div>
+				<div id='compass'>n/a</div>
+			</div>
+		</div>
+	</div>
+		<!-- Import maps polyfill -->
 	<!-- Remove this when import maps will be widely supported -->
 	<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
 	
@@ -500,42 +536,6 @@
 			timeout: 27000
 		});
 	</script>
-	<div class="status">
-		<div class='position row'>
-			<div class='column-33'>
-				<div class='label'>HDG</div>
-				<div id='position-hng'>n/a</div>
-			</div>
-			<div class='column-33'>
-				<div class='label'>Lat</div>
-				<div id='position-lat'>&#8943;</div>
-			</div>
-			<div class='column-33'>
-				<div class='label'>Lng</div>
-				<div id='position-lng'>&#8943;</div>
-			</div>
-		</div>
-		<div class='position row'>
-			<div class='column-33'>
-				<div class='label'>Alpha</div>
-				<div id='alpha'>n/a</div>
-			</div>
-			<div class='column-33'>
-				<div class='label'>Beta</div>
-				<div id='beta'>&#8943;</div>
-			</div>
-			<div class='column-33'>
-				<div class='label'>Gamma</div>
-				<div id='gamma'>&#8943;</div>
-			</div>
-		</div>
-		<div class='position row'>
-			<div class='column-33'>
-				<div class='label'>Compass</div>
-				<div id='compass'>n/a</div>
-			</div>
-		</div>
-	</div>
 </body>
 
 </html>
