@@ -84,7 +84,7 @@
 			</div>
 		</div>
 	</div>
-		<!-- Import maps polyfill -->
+	<!-- Import maps polyfill -->
 	<!-- Remove this when import maps will be widely supported -->
 	<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
 	
@@ -105,6 +105,8 @@
 		import { EffectComposer } from './jsm/postprocessing/EffectComposer.js';
 		import { RenderPass } from './jsm/postprocessing/RenderPass.js';
 		import { FilmPass } from './jsm/postprocessing/FilmPass.js';
+		// imports at top
+		import { OutputPass } from './jsm/postprocessing/OutputPass.js';
 		
 		const radius = 100;
 		const tilt = 0.41;
@@ -239,14 +241,15 @@
 			window.addEventListener('resize', onWindowResize);
 			
 			// postprocessing
-			
-			const renderModel = new RenderPass(scene, camera);
 			const effectFilm = new FilmPass(0.35, 0.75, 2048, false);
 			
 			composer = new EffectComposer(renderer);
+			composer.addPass(new RenderPass(scene, camera));
 			
-			composer.addPass(renderModel);
 			composer.addPass(effectFilm);
+			
+			// REQUIRED for r146+:
+			composer.addPass(new OutputPass());
 			
 		}
 		
@@ -345,42 +348,7 @@
 			
 			return orientation;
 		}
-		
-		function computeHeadingFromOrientation(event) {
-			// Prefer a fused + tilt-compensated heading if the browser provides it (iOS Safari).
-			if (typeof event.webkitCompassHeading === 'number') {
-				// iOS gives 0 = North, clockwise positive.
-				return (360 - event.webkitCompassHeading + (screen.orientation?.angle ?? 0)) % 360;
-			}
-			
-			// Otherwise, build a quaternion from alpha/beta/gamma and screen orientation.
-			const deg2rad = Math.PI / 180;
-			const alpha = (event.alpha || 0) * deg2rad; // z
-			const beta = (event.beta || 0) * deg2rad; // x
-			const gamma = (event.gamma || 0) * deg2rad; // y
-			const so = ((screen.orientation?.angle ?? 0) * deg2rad);
-			
-			// Use the same convention as DeviceOrientationControls: order 'YXZ'
-			// q = R_y(alpha) * R_x(beta) * R_z(gamma)
-			const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
-			const q = new THREE.Quaternion().setFromEuler(euler);
-			
-			// Apply screen orientation (rotate about world Z by -so)
-			const qScreen = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -so);
-			q.premultiply(qScreen);
-			
-			// Transform a forward vector and project onto the horizontal plane (X–Y)
-			const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
-			fwd.z = 0;
-			if (fwd.lengthSq() < 1e-6) return 0; // fallback if near-vertical straight up/down
-			fwd.normalize();
-			
-			// Convert to compass bearing: 0° = North (+Y), clockwise positive
-			let heading = Math.atan2(fwd.x, fwd.y) * 180 / Math.PI;
-			if (heading < 0) heading += 360;
-			return heading;
-		}
-		
+
 		function computeYawPitch(event) {
 			// Build device orientation quaternion (same conv. as DeviceOrientationControls)
 			const d2r = Math.PI / 180;
@@ -444,10 +412,6 @@
 			
 			// Compute a stable, tilt-compensated compass heading for display
 			const heading = tiltCompensatedHeadingFromQuat(q);
-			
-			const effectFilm = new FilmPass(0.35, 0.75, 2048, false);
-			effectFilm.renderToScreen = true; // last pass draws to screen
-			composer.addPass(effectFilm);
 			
 			// Display
 			positionHng.textContent = heading.toFixed(0) + '°';
