@@ -241,23 +241,91 @@
 				composer.render( delta );
 
 			}
+			
+			  // the orientation of the device on app load
+  var defaultOrientation;
+
+
+  // browser agnostic orientation
+  function getBrowserOrientation() {
+    var orientation;
+    if (screen.orientation && screen.orientation.type) {
+      orientation = screen.orientation.type;
+    } else {
+      orientation = screen.orientation ||
+                    screen.mozOrientation ||
+                    screen.msOrientation;
+    }
+
+    /*
+      'portait-primary':      for (screen width < screen height, e.g. phone, phablet, small tablet)
+                                device is in 'normal' orientation
+                              for (screen width > screen height, e.g. large tablet, laptop)
+                                device has been turned 90deg clockwise from normal
+
+      'portait-secondary':    for (screen width < screen height)
+                                device has been turned 180deg from normal
+                              for (screen width > screen height)
+                                device has been turned 90deg anti-clockwise (or 270deg clockwise) from normal
+
+      'landscape-primary':    for (screen width < screen height)
+                                device has been turned 90deg clockwise from normal
+                              for (screen width > screen height)
+                                device is in 'normal' orientation
+
+      'landscape-secondary':  for (screen width < screen height)
+                                device has been turned 90deg anti-clockwise (or 270deg clockwise) from normal
+                              for (screen width > screen height)
+                                device has been turned 180deg from normal
+    */
+
+    return orientation;
+  }
+
 
 			function onHeadingChange(event) {
 				var heading = -1*event.webkitCompassHeading || event.alpha;
+				
+				var orientation = getBrowserOrientation();
 
 				if (typeof heading !== "undefined" && heading !== null) { // && typeof orientation !== "undefined") {
+				
+				      // what adjustment we have to add to rotation to allow for current device orientation
+      var adjustment = 0;
+      if (defaultOrientation === "landscape") {
+      	adjustment -= 90;
+      }
+      
+      if (typeof orientation !== "undefined") {
+      	var currentOrientation = orientation.split("-");
+      	
+      	if (defaultOrientation !== currentOrientation[0]) {
+      		if (defaultOrientation === "landscape") {
+      			adjustment -= 270;
+      		} else {
+      			adjustment -= 90;
+      		}
+      	}
+      	
+      	if (currentOrientation[1] === "secondary") {
+      		adjustment -= 180;
+      	}
+      }
+      
+      positionCurrent.hng = heading - window.orientation; // + adjustment;
+      
 					// we have a browser that reports device heading and orientation
-					var phase = heading < 0 ? 360 + heading : heading;
-					positionHng.textContent = (360 - phase | 0) + "°";
+					var phase = positionCurrent.hng < 0 ? 360 + positionCurrent.hng : positionCurrent.hng;
+      positionHng.textContent = (360 - phase | 0) + "°";
 
 					var euler = new THREE.Euler(0, 0, 0, 'ZXY');
-					euler.set(THREE.Math.degToRad(90 - event.beta), THREE.Math.degToRad(event.alpha), THREE.Math.degToRad(event.gamma));
+					euler.set(THREE.Math.degToRad(90 - event.beta), THREE.Math.degToRad(positionCurrent.hng), THREE.Math.degToRad(event.gamma));
 					meshCompass.setRotationFromEuler(euler);
 
 					positionAlpha.textContent = event.alpha.toFixed(1);
 					positionBeta.textContent = event.beta.toFixed(1);
 					positionGamma.textContent = event.gamma.toFixed(1);
-					positionCompass.textContent = event.webkitCompassHeading.toFixed(1);
+					positionCompass.textContent = positionCurrent.hng.toFixed(1);
 				}
 			}
 
