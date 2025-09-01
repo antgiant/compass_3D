@@ -47,7 +47,6 @@
 	
 	<div id="info">Ball Compass<br />
 	</div>
-	
 	<div class="status">
 		<div class='position row'>
 			<div class='column-33'>
@@ -84,6 +83,7 @@
 			</div>
 		</div>
 	</div>
+	
 	<!-- Import maps polyfill -->
 	<!-- Remove this when import maps will be widely supported -->
 	<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
@@ -105,7 +105,7 @@
 		import { EffectComposer } from './jsm/postprocessing/EffectComposer.js';
 		import { RenderPass } from './jsm/postprocessing/RenderPass.js';
 		import { FilmPass } from './jsm/postprocessing/FilmPass.js';
-
+		
 		const radius = 100;
 		const tilt = 0.41;
 		const rotationSpeed = 1.02;
@@ -239,11 +239,13 @@
 			window.addEventListener('resize', onWindowResize);
 			
 			// postprocessing
+			
+			const renderModel = new RenderPass(scene, camera);
 			const effectFilm = new FilmPass(0.35, 0.75, 2048, false);
 			
 			composer = new EffectComposer(renderer);
-			composer.addPass(new RenderPass(scene, camera));
 			
+			composer.addPass(renderModel);
 			composer.addPass(effectFilm);
 			
 		}
@@ -282,31 +284,9 @@
 			
 		}
 		
-		const zee = new THREE.Vector3(0, 0, 1);
-		const q0 = new THREE.Quaternion(); // screen orientation
-		const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // -PI/2 about X
-		const eulerYXZ = new THREE.Euler(0, 0, 0, 'YXZ');
+		// the orientation of the device on app load
+		var defaultOrientation;
 		
-		function setObjectQuaternionFromDO(quat, alpha, beta, gamma, orient) {
-			// Same as THREE.DeviceOrientationControls
-			eulerYXZ.set(-beta, alpha, -gamma); // 'YXZ'
-			quat.setFromEuler(eulerYXZ); // device
-			quat.multiply(q1); // -PI/2 around X to convert device -> world
-			quat.multiply(q0.setFromAxisAngle(zee, -orient)); // apply screen orientation
-		}
-		
-		function tiltCompensatedHeadingFromQuat(quat) {
-			// Project forward onto horizontal plane, 0° = North (+Z or +Y depending on your world)
-			const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(quat); // device forward in world
-			// Choose your “North” axis. If your scene uses +Z as North, project to XZ:
-			fwd.y = 0; // drop vertical
-			if (fwd.lengthSq() < 1e-6) return 0;
-			fwd.normalize();
-			// Heading: 0° = North (+Z), clockwise positive
-			let heading = THREE.MathUtils.radToDeg(Math.atan2(fwd.x, fwd.z));
-			if (heading < 0) heading += 360;
-			return heading;
-		}
 		
 		// browser agnostic orientation
 		function getBrowserOrientation() {
@@ -343,77 +323,61 @@
 			
 			return orientation;
 		}
-
-		function computeYawPitch(event) {
-			// Build device orientation quaternion (same conv. as DeviceOrientationControls)
-			const d2r = Math.PI / 180;
-			const alpha = (event.alpha || 0) * d2r; // z
-			const beta = (event.beta || 0) * d2r; // x
-			const gamma = (event.gamma || 0) * d2r; // y
-			const so = (screen.orientation?.angle ?? 0) * d2r;
-			
-			// q = R_y(alpha) * R_x(beta) * R_z(gamma)   with order 'YXZ'
-			const euler = new THREE.Euler(-beta, alpha, -gamma, 'YXZ');
-			const q = new THREE.Quaternion().setFromEuler(euler);
-			
-			// Apply screen orientation (rotate around world Z by -so)
-			const qScreen = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -so);
-			const qTotal = qScreen.multiply(q);
-			
-			// Transform world-forward (0,0,-1) and right (1,0,0)
-			const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(qTotal); // device forward in world
-			const right = new THREE.Vector3(1, 0, 0).applyQuaternion(qTotal); // device right in world
-			
-			// ---- Yaw: angle in the horizontal (X–Z) plane, 0° = world -Z (forward), clockwise positive
-			// If you want 0°=North and North is -Z, this works:
-			let yaw = Math.atan2(fwd.x, -fwd.z); // [-π, π]
-			
-			// ---- Pitch: up/down tilt. Use the world-up (Y) component of forward.
-			//   asin(fwd.y) is stable and avoids roll coupling.
-			let pitch = Math.asin(THREE.MathUtils.clamp(fwd.y, -1, 1)); // [-π/2, π/2]
-			
-			// Optional: smooth or clamp if you want limited tilt
-			return { yawDeg: THREE.MathUtils.radToDeg(yaw), pitchDeg: THREE.MathUtils.radToDeg(pitch) };
-		}
 		
-		function computeHeadingFromOrientation(event) {
-			// Prefer fused, tilt-compensated heading on iOS if available
-			if (typeof event.webkitCompassHeading === 'number') {
-				return (360 - event.webkitCompassHeading + (screen.orientation?.angle ?? 0)) % 360;
-			}
-			// From yaw above (0..360, clockwise, 0 = North == -Z)
-			const { yawDeg } = computeYawPitch(event);
-			let heading = yawDeg;
-			if (heading < 0) heading += 360;
-			return heading;
-		}
 		
 		function onHeadingChange(event) {
-			// Guard numbers (some browsers can deliver nulls briefly)
-			const d2r = Math.PI / 180;
-			const alpha = ((event.alpha ?? 0) * d2r);
-			const beta = ((event.beta ?? 0) * d2r);
-			const gamma = ((event.gamma ?? 0) * d2r);
-			const orient = ((screen.orientation?.angle ?? 0) * d2r);
+			var heading = -1 * event.webkitCompassHeading || event.alpha;
 			
-			// Build full device quaternion (includes roll)
-			const q = new THREE.Quaternion();
-			setObjectQuaternionFromDO(q, alpha, beta, gamma, orient);
+			var orientation = getBrowserOrientation();
 			
-			// Apply to your sphere (this is the whole orientation: yaw, pitch, roll)
-			// If your texture points the wrong way, try multiplying a fixed Y offset:
-			// q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), Math.PI/2));
-			meshCompass.quaternion.copy(q);
-			
-			// Compute a stable, tilt-compensated compass heading for display
-			const heading = tiltCompensatedHeadingFromQuat(q);
-			
-			// Display
-			positionHng.textContent = heading.toFixed(0) + '°';
-			positionCompass.textContent = heading.toFixed(1);
-			positionAlpha.textContent = (event.alpha ?? 0).toFixed(1);
-			positionBeta.textContent = (event.beta ?? 0).toFixed(1);
-			positionGamma.textContent = (event.gamma ?? 0).toFixed(1);
+			if (typeof heading !== "undefined" && heading !== null) { // && typeof orientation !== "undefined") {
+				
+				// what adjustment we have to add to rotation to allow for current device orientation
+				var adjustment = 0;
+				if (defaultOrientation === "landscape") {
+					adjustment -= 90;
+				}
+				
+				if (typeof orientation !== "undefined") {
+					var currentOrientation = orientation.split("-");
+					
+					if (defaultOrientation !== currentOrientation[0]) {
+						if (defaultOrientation === "landscape") {
+							adjustment -= 270;
+						} else {
+							adjustment -= 90;
+						}
+					}
+					
+					if (currentOrientation[1] === "secondary") {
+						adjustment -= 180;
+					}
+				}
+				
+				positionCurrent.hng = heading - window.orientation; // + adjustment;
+				
+				// we have a browser that reports device heading and orientation
+				var phase = positionCurrent.hng < 0 ? 360 + positionCurrent.hng : positionCurrent.hng;
+				positionHng.textContent = (360 - phase | 0) + "°";
+				
+				//const alpha = THREE.MathUtils.degToRad(event.alpha || 0); // yaw
+				const alpha = heading; // yaw
+				const beta = THREE.MathUtils.degToRad(event.beta || 0); // pitch
+				const gamma = THREE.MathUtils.degToRad(event.gamma || 0); // roll
+				
+				// match the old 'ZXY' order but directly in quaternion
+				const q = new THREE.Quaternion().setFromEuler(
+					new THREE.Euler(beta, alpha, gamma, 'ZXY')
+				);
+				
+				meshCompass.quaternion.copy(q);
+				
+				// optional: display values
+				positionAlpha.textContent = (event.alpha ?? 0).toFixed(1);
+				positionBeta.textContent = (event.beta ?? 0).toFixed(1);
+				positionGamma.textContent = (event.gamma ?? 0)
+				positionCompass.textContent = (-1 * positionCurrent.hng).toFixed(1);
+			}
 		}
 		
 		function locationUpdate(position) {
