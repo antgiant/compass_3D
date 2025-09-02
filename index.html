@@ -362,7 +362,7 @@
 				
 				//const alpha = THREE.MathUtils.degToRad(event.alpha || 0); // yaw
 				const alpha = THREE.MathUtils.degToRad(heading || 0); // yaw
-				const beta = THREE.MathUtils.degToRad(90 a- event.beta || 0); // pitch
+				const beta = THREE.MathUtils.degToRad(90 - event.beta || 0); // pitch
 				const gamma = THREE.MathUtils.degToRad(event.gamma || 0); // roll
 				
 				// match the old 'ZXY' order but directly in quaternion
