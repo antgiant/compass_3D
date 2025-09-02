@@ -326,34 +326,25 @@
 		
 		
 		function onHeadingChange(event) {
-			var heading = -1 * event.webkitCompassHeading || event.alpha;
+			let heading = (typeof event.webkitCompassHeading === 'number') ? -event.webkitCompassHeading : event.alpha;
 			
 			var orientation = getBrowserOrientation();
 			
 			if (typeof heading !== "undefined" && heading !== null) { // && typeof orientation !== "undefined") {
 				
-				positionCurrent.hng = heading - window.orientation;
+				positionCurrent.hng = heading - screen.orientation?.angle ?? 0;
 				
 				// we have a browser that reports device heading and orientation
 				var phase = positionCurrent.hng < 0 ? 360 + positionCurrent.hng : positionCurrent.hng;
 				positionHng.textContent = (360 - phase | 0) + "°";
 				
-				//const alpha = THREE.MathUtils.degToRad(event.alpha || 0); // yaw
-				const alpha = THREE.MathUtils.degToRad(positionCurrent.hng || 0); // yaw
-				const beta = THREE.MathUtils.degToRad(90 - event.beta || 0); // pitch
-				const gamma = THREE.MathUtils.degToRad(event.gamma || 0); // roll
+				var euler = new THREE.Euler(0, 0, 0, 'ZXY');
+				euler.set(THREE.Math.degToRad(90 - event.beta), THREE.Math.degToRad(-1 * positionCurrent.hng), THREE.Math.degToRad(event.gamma));
+				meshCompass.setRotationFromEuler(euler);
 				
-				// match the old 'ZXY' order but directly in quaternion
-				const q = new THREE.Quaternion().setFromEuler(
-					new THREE.Euler(beta, alpha, gamma, 'ZXY')
-				);
-				
-				meshCompass.quaternion.copy(q);
-				
-				// optional: display values
-				positionAlpha.textContent = (event.alpha ?? 0).toFixed(1);
-				positionBeta.textContent = (event.beta ?? 0).toFixed(1);
-				positionGamma.textContent = (event.gamma ?? 0).toFixed(1);
+				positionAlpha.textContent = event.alpha.toFixed(1);
+				positionBeta.textContent = event.beta.toFixed(1);
+				positionGamma.textContent = event.gamma.toFixed(1);
 				positionCompass.textContent = (-1 * positionCurrent.hng).toFixed(1);
 			}
 		}
