@@ -341,7 +341,7 @@
 			const orientRad = THREE.MathUtils.degToRad(orientDeg);
 			
 			// Build quaternion similar to DeviceOrientationControls
-			const euler = new THREE.Euler(betaRad, alphaRad, -gammaRad, 'YXZ');
+			const euler = new THREE.Euler(betaRad, alphaRad, -gammaRad, 'XYZ');
 			
 			const zee = new THREE.Vector3(0, 0, 1);
 			const q0 = new THREE.Quaternion();
