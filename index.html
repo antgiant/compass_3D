@@ -325,61 +325,41 @@
 		}
 		
 		
-		function onHeadingChange(event) {
-			// 1) Read raw sensor angles (in degrees)
-			//    Use webkitCompassHeading for true compass yaw when available.
-			const hasWCH = typeof event.webkitCompassHeading === 'number';
-			const alphaDeg = hasWCH ? -event.webkitCompassHeading : (event.alpha || 0); // note the minus for WCH (clockwise -> CCW)
-			const betaDeg = event.beta || 0;
-			const gammaDeg = event.gamma || 0;
+		function onHeadingChange(e) {
+			// Choose alpha from absolute heading if available; fall back to e.alpha
+			const alphaRad = (e.webkitCompassHeading != null) ?
+				THREE.MathUtils.degToRad(360 - e.webkitCompassHeading) :
+				THREE.MathUtils.degToRad(e.alpha || 0);
 			
-			// 2) Convert to radians
-			const alpha = THREE.MathUtils.degToRad(alphaDeg); // yaw (around Z)
-			const beta = THREE.MathUtils.degToRad(betaDeg); // pitch (around X')
-			const gamma = THREE.MathUtils.degToRad(gammaDeg); // roll (around Y'')
+			const betaRad = THREE.MathUtils.degToRad(e.beta || 0); // pitch (device X)
+			const gammaRad = THREE.MathUtils.degToRad(e.gamma || 0); // roll  (device Y)
 			
-			// 3) Screen orientation (portrait/landscape)
-			const orientDeg = (screen.orientation && typeof screen.orientation.angle === 'number') ?
+			// Screen orientation (0, 90, 180, 270)
+			const orientDeg = (screen.orientation && screen.orientation.angle != null) ?
 				screen.orientation.angle :
 				(window.orientation || 0);
-			const orient = THREE.MathUtils.degToRad(orientDeg);
+			const orientRad = THREE.MathUtils.degToRad(orientDeg);
 			
-			// 4) Build quaternion like DeviceOrientationControls
-			const euler = new THREE.Euler();
-			euler.set(beta, alpha, -gamma, 'YXZ'); // 'ZXY' device -> 'YXZ' object
+			// Build quaternion similar to DeviceOrientationControls
+			const euler = new THREE.Euler(betaRad, alphaRad, -gammaRad, 'YXZ');
 			
-			const q = new THREE.Quaternion().setFromEuler(euler);
-			
-			// camera looks out the back of the device, not the top: multiply AFTER device q
-			const q1 = new THREE.Quaternion(-Math.SQRT1_2, 0, 0, Math.SQRT1_2); // -π/2 around X
-			q.multiply(q1);
-			
-			// adjust for screen orientation (multiply AFTER q1)
-			const q0 = new THREE.Quaternion();
 			const zee = new THREE.Vector3(0, 0, 1);
-			q.multiply(q0.setFromAxisAngle(zee, -orient));
+			const q0 = new THREE.Quaternion();
+			const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // -π/2 about X
+			
+			const q = new THREE.Quaternion()
+				.setFromEuler(euler) // device
+				.multiply(q1) // device -> world correction
+				.multiply(q0.setFromAxisAngle(zee, -orientRad)); // screen orientation
 			
 			meshCompass.quaternion.copy(q);
 			
-			// 5) Headline display: prefer real compass if provided
-			let displayHeading;
-			if (hasWCH) {
-				displayHeading = event.webkitCompassHeading; // already CW from North
-			} else {
-				// Derive an approximate compass from alpha + screen orientation
-				// alpha is CCW; convert to CW compass bearing
-				const cw = (360 - (alphaDeg + orientDeg)) % 360;
-				displayHeading = (cw + 360) % 360;
-			}
-			
-			positionCurrent.hng = displayHeading;
-			positionHng.textContent = (displayHeading | 0) + '°';
-			
-			// Optional UI readouts
-			positionAlpha.textContent = (event.alpha ?? 0).toFixed(1);
-			positionBeta.textContent = (betaDeg).toFixed(1);
-			positionGamma.textContent = (gammaDeg).toFixed(1);
-			positionCompass.textContent = displayHeading.toFixed(1);
+			// UI (optional)
+			positionAlpha.textContent = (e.alpha ?? 0).toFixed(1);
+			positionBeta.textContent = (e.beta ?? 0).toFixed(1);
+			positionGamma.textContent = (e.gamma ?? 0).toFixed(1);
+			positionCompass.textContent = (alphaRad).toFixed(1);
+		}
 		}
 		
 		function locationUpdate(position) {
